@@ -24,6 +24,12 @@ type Node struct{
 	Prev *Node
 } 
 
+type ElectionMsg struct {
+	Candidate Node
+	From Node
+
+}
+
 // variables of the registry //
 var CurrNode Node
 var Leader = Node{}
@@ -43,20 +49,21 @@ func (p *Peer) UpdateNext(next Node, reply *int) error {
 
 
 
-func (p *Peer) ElectionLeader(candidate Node, reply *int) error {
+func (p *Peer) ElectionLeader(msg ElectionMsg, reply *int) error {
 
-	if candidate.ID == CurrNode.ID {
-		log.Printf("I'm the leader")
+	if msg.Candidate.ID == CurrNode.ID {
+		log.Printf("ELECTION: I'm the leader")
 		iamLeader = true
 		election = false
-		NotifyLeader()
-	}else if candidate.ID > CurrNode.ID {
+		*reply = 1
+		NotifyLeader(msg.From)
+	}else if msg.Candidate.ID > CurrNode.ID {
 		election = true
-		log.Printf("Node %d wants to be candidate. Sending message to next node", candidate.ID)
-		Election(candidate)
+		log.Printf("ELECTION: Node %d wants to be candidate. Sending message to next node", msg.Candidate.ID)
+		Election(msg.Candidate)
 	}else{
 		election = true
-		log.Printf("Node %d has lower ID then mine. Running for election :)", candidate.ID)
+		log.Printf("ELECTION: Node %d has lower ID then mine. Running for election :)", msg.Candidate.ID)
 		Election(CurrNode)
 	}
 	
@@ -68,7 +75,7 @@ func (p *Peer) ElectionLeader(candidate Node, reply *int) error {
 func (p *Peer) NewLeader(leader Node, reply *int) error {
 	iamLeader = false
 	Leader = leader
-	log.Printf("New leader is node %d", Leader.ID) 
+	log.Printf("ELECTION FINISHED: New leader is node %d", Leader.ID) 
 	
 	return nil
 
@@ -76,7 +83,7 @@ func (p *Peer) NewLeader(leader Node, reply *int) error {
 
 //////////////////////////////
 
-func NotifyLeader(){
+func NotifyLeader(except Node){
 	var next *Node = CurrNode.Next
 	var reply int
 
@@ -85,13 +92,15 @@ func NotifyLeader(){
 	}
 	
 	
-	for next.ID != CurrNode.ID {
+	for next.ID != CurrNode.ID && next.ID != except.ID {
 	
 		if IsAlive(CurrNode.Next.Addr) < 0 {
 			log.Fatal("Node %d not responding, passing to next...", next.ID)
 			next = next.Next
 			continue 
 		}
+		
+		log.Printf("ELECTION FINISHED: Informing node %d I'm the leader", next.ID)
 		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
 		if err != nil {
 			log.Fatal("Dial error", next.ID)
@@ -101,26 +110,27 @@ func NotifyLeader(){
 		if err != nil {
 			log.Fatal("Error while calling RPC:", err)
 		}
-
+		
+		next = next.Next
 		client.Close()
-		return
+	
 	}
 	
-	if next.ID == CurrNode.ID {
-		return
-	}
+	return
 
 }
-
 
 
 func Election(leader Node){
 	var next *Node = CurrNode.Next
 	var reply int
+	var msg ElectionMsg
 
 	if next == nil{
 		iamLeader = true
 		Leader = CurrNode
+		log.Printf("ELECTION: No one in the network. I'am the leader")
+		return
 	}
 	
 	
@@ -131,23 +141,38 @@ func Election(leader Node){
 			continue 
 		}
 		
+		msg.Candidate = leader
+		msg.From = CurrNode
+		
+		if election == false {
+			log.Printf("STARTING ELECTION: Sending message to node %d", next.ID)
+		} else {
+			log.Printf("ELECTION: Sending message to node %d", next.ID)
+		}
+		
 		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
 		if err != nil {
 			log.Fatal("Dial error", next.ID)
 		}
 		
-		err = client.Call("Peer.ElectionLeader", leader, &reply)
+		err = client.Call("Peer.ElectionLeader", msg, &reply)
 		if err != nil {
 			log.Fatal("Error while calling RPC:", err)
 		}
-
+		
+		if(reply == 1){
+			iamLeader = false
+			Leader = *next
+			log.Printf("ELECTION FINISHED: New leader is %d", Leader.ID)
+		}
+		
 		client.Close()
 		election = true
 		return
 	}
 	
 	if next.ID == CurrNode.ID {
-		log.Printf("No node is working in the network. Waiting for leader recovery")
+		log.Printf("ELECTION: No node is working in the network. Waiting for leader recovery")
 		return
 	}
 
@@ -192,8 +217,7 @@ func IsAlive(addr string) int {
 func NotifyPrev(){
 	var reply int
 	
-	//client, err := rpc.DialHTTP("tcp", CurrNode.Prev.Addr)
-	client, err := rpc.DialHTTP("tcp", fmt.Sprintf("localhost:%d\n", CurrNode.Prev.ID))
+	client, err := rpc.DialHTTP("tcp", CurrNode.Prev.Addr)
 	if err != nil {
 		log.Fatal("Error while connecting to predecessor:", err)
 	}
@@ -253,7 +277,7 @@ func main() {
 	}
 	
 	CurrNode.ID=lis.Addr().(*net.TCPAddr).Port
-	CurrNode.Addr = fmt.Sprintf("localhost:%d\n", CurrNode.ID)
+	CurrNode.Addr = fmt.Sprintf("localhost:%d", CurrNode.ID)
 	CurrNode.Next = nil
 	
 	log.Printf("RPC server listens on port %s", CurrNode.Addr)
