@@ -7,15 +7,23 @@ import (
 	"net/rpc"
 	"net/http"
 	"time"
+	"strings"
 )
 
 type Peer string
 
 // struct used in RPC //
 type Neighbours struct {
+	ID int
+	Algorithm string
+	//LeLann
 	Prev Node
 	Next Node
+	//Bully
+	Peers []Node
+	Present bool 
 }
+
 
 type Node struct{
 	ID int
@@ -25,6 +33,7 @@ type Node struct{
 } 
 
 type ElectionMsg struct {
+	ElectionID int
 	Candidate Node
 	From Node
 
@@ -33,11 +42,21 @@ type ElectionMsg struct {
 // variables of the registry //
 var CurrNode Node
 var Leader = Node{}
+var peers []Node
 var iamLeader = false
 var election = false
+var algorithm string
 
 
-// RPC ///////////////////////
+func printPeers(){
+	var i int
+	for i=0; i<len(peers); i++ {
+		log.Printf("%d:ID %d Address %s", i,peers[i].ID, peers[i].Addr)
+	
+	}
+}
+
+// RPC LeLan ///////////////////////
 
 func (p *Peer) UpdateNext(next Node, reply *int) error {
 
@@ -49,22 +68,25 @@ func (p *Peer) UpdateNext(next Node, reply *int) error {
 
 
 
-func (p *Peer) ElectionLeader(msg ElectionMsg, reply *int) error {
+func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 
 	if msg.Candidate.ID == CurrNode.ID {
-		log.Printf("ELECTION: I'm the leader")
+		log.Printf("ELECTION %d: I'm the leader", msg.ElectionID)
 		iamLeader = true
 		election = false
 		*reply = 1
-		NotifyLeader(msg.From)
+		NotifyLeader(msg.From, msg)
 	}else if msg.Candidate.ID > CurrNode.ID {
 		election = true
-		log.Printf("ELECTION: Node %d wants to be candidate. Sending message to next node", msg.Candidate.ID)
-		Election(msg.Candidate)
+		log.Printf("ELECTION %d: Node %d wants to be candidate. Sending message to next node",msg.ElectionID, msg.Candidate.ID)
+		msg.From = CurrNode
+		ElectionLeLann(msg)
 	}else{
 		election = true
-		log.Printf("ELECTION: Node %d has lower ID then mine. Running for election :)", msg.Candidate.ID)
-		Election(CurrNode)
+		log.Printf("ELECTION %d: Node %d has lower ID then mine. Running for the election :)", msg.ElectionID, msg.Candidate.ID)
+		msg.Candidate = CurrNode
+		msg.From = CurrNode
+		ElectionLeLann(msg)
 	}
 	
 	
@@ -72,18 +94,44 @@ func (p *Peer) ElectionLeader(msg ElectionMsg, reply *int) error {
 }
 
 
-func (p *Peer) NewLeader(leader Node, reply *int) error {
+func (p *Peer) ElectionBully(msg ElectionMsg, reply *int) error {
+	election = true
+	if msg.Candidate.ID < CurrNode.ID {
+		log.Printf("ELECTION %d: Candidatee has lower ID then mine. Starting new ELECTION %d", msg.ElectionID, CurrNode.ID)
+		msg.ElectionID = CurrNode.ID
+		msg.Candidate = CurrNode
+		ElectionBully(msg)
+	}
+	return nil
+}
+
+
+func (p *Peer) NewLeader(msg ElectionMsg, reply *int) error {
 	iamLeader = false
-	Leader = leader
-	log.Printf("ELECTION FINISHED: New leader is node %d", Leader.ID) 
+	election = false
+	Leader = msg.Candidate
+	log.Printf("ELECTION %d FINISHED: New leader is node %d",msg.ElectionID, msg.Candidate.ID) 
 	
 	return nil
 
 }
 
+// RPC Bully ///////////////////////
+
+func (p *Peer) NewPeer(newNode Node, reply *int) error {
+	var newPeer Node
+	newPeer.ID = newNode.ID
+	newPeer.Addr = strings.Clone(newNode.Addr)  
+	peers = append(peers, newPeer)
+	log.Printf("Added peer with ID %d and address %s", newNode.ID, newNode.Addr)
+	return nil
+
+}
+
+
 //////////////////////////////
 
-func NotifyLeader(except Node){
+func NotifyLeader(except Node, msg ElectionMsg){
 	var next *Node = CurrNode.Next
 	var reply int
 
@@ -100,13 +148,14 @@ func NotifyLeader(except Node){
 			continue 
 		}
 		
-		log.Printf("ELECTION FINISHED: Informing node %d I'm the leader", next.ID)
+		log.Printf("ELECTION %d FINISHED: Informing node %d I'm the leader",msg.ElectionID, next.ID)
 		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
 		if err != nil {
 			log.Fatal("Dial error", next.ID)
 		}
 	
-		err = client.Call("Peer.NewLeader", CurrNode, &reply)
+		msg.Candidate = CurrNode
+		err = client.Call("Peer.NewLeader", msg, &reply)
 		if err != nil {
 			log.Fatal("Error while calling RPC:", err)
 		}
@@ -120,34 +169,110 @@ func NotifyLeader(except Node){
 
 }
 
+func ElectionBully(msg ElectionMsg){
+	var i int 
+	var reply int
+	
+	election = true
+	
+	log.Printf("len is %d", len(peers))
+	if len(peers) == 0 { log.Printf("STARTING ELECTION %d", msg.ElectionID) }
+	
+	
+	for i=0; i<len(peers) ; i++ {
+		
+		if peers[i].ID == CurrNode.ID || peers[i].ID < CurrNode.ID {
+			log.Printf("STARTING ELECTION %d", msg.ElectionID)
+		 	continue }
+		
+		log.Printf("STARTING ELECTION %d: Sending message to node %d", msg.ElectionID, peers[i].ID)
+		
+		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
+		if err != nil {
+			log.Fatal("Dial error", err)
+		}
+		
+		err = client.Call("Peer.ElectionBully", msg, &reply)
+		if err != nil {
+			log.Fatal("Error while calling RPC:", err)
+		}
+		
+		if IsAlive(peers[i].Addr) < 0 { continue }
+		c := make(chan error, 1)
+		go func() { c <- client.Call("Peer.ElectionBully", msg, &reply) } ()
+			select {
+  				case err := <-c:
+  					if err != nil {
+						log.Fatal("Error while calling RPC:", err)
+					}
+					iamLeader = false
+					log.Printf("ELECTION %d FINISHED: I'm not the peer with highest ID",msg.ElectionID)
+					client.Close()
+					return
+				
+				//simulating the fact that the other peer does not respond	
+  				case <-time.After(3 * time.Second):
+    					iamLeader = false
+					log.Printf("ELECTION %d FINISHED: I'm not the peer with highest ID",msg.ElectionID)
+					client.Close()
+					return
+			}
+		
+		client.Close()
+	}
+	
+	iamLeader = true
+	election = false
+	Leader = CurrNode
+	
+	log.Printf("ELECTION %d FINISHED: Informing other peers I'm the leader", msg.ElectionID)
+	
+	for i=0; i<len(peers) ; i++ {
+		
+		if peers[i].ID == CurrNode.ID { continue }
+		
+		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
+		if err != nil {
+			log.Fatal("Dial error", err)
+		}
+		
+		err = client.Call("Peer.NewLeader", msg, &reply)
+		if err != nil {
+			log.Fatal("Error while calling RPC:", err)
+		}
 
-func Election(leader Node){
+	}
+}
+
+
+
+func ElectionLeLann(msg ElectionMsg){
 	var next *Node = CurrNode.Next
 	var reply int
-	var msg ElectionMsg
 
+	//only one node in the system
 	if next == nil{
 		iamLeader = true
+		election = false
 		Leader = CurrNode
-		log.Printf("ELECTION: No one in the network. I'am the leader")
+		log.Printf("ELECTION %d: No one in the network. I'am the leader", CurrNode.ID)
 		return
 	}
 	
-	
+	//there are other nodes in the system
 	for next.ID != CurrNode.ID {
+	
+		//checking if next node is responding. If not, passing to next one in the ring until one is reachable
 		if IsAlive(CurrNode.Next.Addr) < 0 {
 			log.Fatal("Node %d not responding, passing to next...", next.ID)
 			next = next.Next
 			continue 
 		}
 		
-		msg.Candidate = leader
-		msg.From = CurrNode
-		
 		if election == false {
-			log.Printf("STARTING ELECTION: Sending message to node %d", next.ID)
+			log.Printf("STARTING ELECTION %d: Sending message to node %d", msg.ElectionID, next.ID)
 		} else {
-			log.Printf("ELECTION: Sending message to node %d", next.ID)
+			log.Printf("ELECTION %d: Sending message to node %d",msg.ElectionID, next.ID)
 		}
 		
 		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
@@ -155,15 +280,18 @@ func Election(leader Node){
 			log.Fatal("Dial error", next.ID)
 		}
 		
-		err = client.Call("Peer.ElectionLeader", msg, &reply)
+		err = client.Call("Peer.ElectionLeaderLeLann", msg, &reply)
 		if err != nil {
 			log.Fatal("Error while calling RPC:", err)
 		}
 		
 		if(reply == 1){
 			iamLeader = false
+			election = false 
 			Leader = *next
-			log.Printf("ELECTION FINISHED: New leader is %d", Leader.ID)
+			log.Printf("ELECTION %d FINISHED: New leader is %d",msg.ElectionID, Leader.ID)
+			client.Close()
+			return
 		}
 		
 		client.Close()
@@ -172,7 +300,9 @@ func Election(leader Node){
 	}
 	
 	if next.ID == CurrNode.ID {
-		log.Printf("ELECTION: No node is working in the network. Waiting for leader recovery")
+		iamLeader = true
+		Leader = CurrNode
+		log.Printf("ELECTION %d: No working node in the network. I'm the leader", msg.ElectionID)
 		return
 	}
 
@@ -182,18 +312,30 @@ func Election(leader Node){
 
 
 func CheckLeaderAlive(){
-	var ret int
-	if Leader == (Node{}) {
-		Election(CurrNode)
-		
-	}
-	
+
 	for {
+		var ret int
+		var msg ElectionMsg
+	
+		if Leader == (Node{}) {
+			msg.ElectionID = CurrNode.ID
+			msg.Candidate = CurrNode
+			msg.From = CurrNode
+			if algorithm == "lelann" {  ElectionLeLann(msg) 
+			} else { ElectionBully(msg) }
+		
+		}
+	
 		if iamLeader == false && election == false {
+			//log.Printf("Checking if leader is alive...")
 			ret = IsAlive(Leader.Addr)
 			if ret < 0 {
+				msg.ElectionID = CurrNode.ID
+				msg.Candidate = CurrNode
+				msg.From = CurrNode
 				log.Printf("Leader is not responding")
-				Election(CurrNode)
+				if algorithm == "lelann" {  ElectionLeLann(msg) 
+				} else { ElectionBully(msg) }
 			}
 		}
 	}
@@ -231,6 +373,29 @@ func NotifyPrev(){
 
 }
 
+func updatePeers(proc string) {
+
+	var i int
+	var reply int
+	
+	for i=0; i<len(peers); i++ {
+		if peers[i].ID == CurrNode.ID { continue }
+		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
+		if err != nil {
+			log.Fatal("Error while connecting to peer:", err)
+		}
+		
+		err = client.Call(fmt.Sprintf("Peer.%s", proc), CurrNode, &reply)
+			if err != nil {
+			log.Fatal("Error while calling RPC:", err)
+			}
+			
+		client.Close()
+		}
+	
+}
+
+
 
 func GetPeers() {
 
@@ -238,7 +403,6 @@ func GetPeers() {
 	var reply Neighbours
 	
 	//connection to service registry 
-	log.Printf("Connecting to service registry")
 	client, err := rpc.DialHTTP("tcp", serviceRegistry)
 	if err != nil {
 		log.Fatal("Error while connecting to registry server:", err)
@@ -250,46 +414,65 @@ func GetPeers() {
 	}
 	
 	client.Close()
-	if reply.Next ==  (Node{}) {
-		CurrNode.Next = nil
-		CurrNode.Prev = nil
-	} else {
-		CurrNode.Next = &(reply.Next)
-		CurrNode.Prev = &(reply.Prev)
-	}
 	
-	if CurrNode.Next != nil {
-		log.Printf("Next node is %d address %s", CurrNode.Next.ID, CurrNode.Next.Addr )
-		log.Printf("Prev node is %d address %s", CurrNode.Prev.ID, CurrNode.Prev.Addr )
+	CurrNode.ID = reply.ID
+	algorithm = reply.Algorithm
+	
+	log.Printf("Peer with ID %d listens on %s",CurrNode.ID, CurrNode.Addr)
+	
+	if algorithm == "lelann" {
+	
+		if reply.Next ==  (Node{}) {
+			CurrNode.Next = nil
+			CurrNode.Prev = nil
+		} else {
+			CurrNode.Next = &(reply.Next)
+			CurrNode.Prev = &(reply.Prev)
+		}
+		
+		if CurrNode.Next != nil {
+			log.Printf("Next node is %d address %s", CurrNode.Next.ID, CurrNode.Next.Addr )
+			log.Printf("Prev node is %d address %s", CurrNode.Prev.ID, CurrNode.Prev.Addr )
+		}
+		
+		if CurrNode.Prev != nil && reply.Present == false{
+			NotifyPrev()
+		}
+
+		
+	} else {
+		peers = reply.Peers
+		printPeers()
+		if reply.Present == false { updatePeers("NewPeer") }
 	}
 
 }
 
 func main() {
+	
+	var port string
+	_, err := fmt.Scanln(&port)
+    	if err != nil {
+        	log.Fatal(err)
+    	}
+    	port = strings.TrimRight(port, "\n")
 
 	peer := new(Peer)
 	rpc.Register(peer)
 	rpc.HandleHTTP()
-	// Listen for incoming TCP packets on specified port
-	lis, err := net.Listen("tcp", ":0")
+	
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	
 	if err != nil {
 		log.Fatal("Error while starting RPC server:", err)
 	}
 	
-	CurrNode.ID=lis.Addr().(*net.TCPAddr).Port
-	CurrNode.Addr = fmt.Sprintf("localhost:%d", CurrNode.ID)
+	CurrNode.Addr = fmt.Sprintf("localhost:%s", port)
 	CurrNode.Next = nil
-	
-	log.Printf("RPC server listens on port %s", CurrNode.Addr)
 
 	GetPeers()
 	
 	go CheckLeaderAlive()
-	
-	if CurrNode.Prev != nil {
-		NotifyPrev()
-	}
-
 
 	http.Serve(lis, nil) 
 	
