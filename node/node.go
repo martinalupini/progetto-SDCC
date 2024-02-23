@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 	"strings"
+	"reflect"
 )
 
 type Peer string
@@ -46,6 +47,8 @@ var peers []Node
 var iamLeader = false
 var election = false
 var algorithm string
+var numElection = 0
+var elMsg ElectionMsg
 
 
 func printPeers(){
@@ -75,18 +78,20 @@ func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 		iamLeader = true
 		election = false
 		*reply = 1
-		NotifyLeader(msg.From, msg)
+		NotifyLeader(CurrNode, msg)
 	}else if msg.Candidate.ID > CurrNode.ID {
 		election = true
 		log.Printf("ELECTION %d: Node %d wants to be candidate. Sending message to next node",msg.ElectionID, msg.Candidate.ID)
 		msg.From = CurrNode
-		ElectionLeLann(msg)
+		ElectionLeLann(msg, false)
 	}else{
 		election = true
 		log.Printf("ELECTION %d: Node %d has lower ID then mine. Running for the election :)", msg.ElectionID, msg.Candidate.ID)
 		msg.Candidate = CurrNode
 		msg.From = CurrNode
-		ElectionLeLann(msg)
+		msg.ElectionID = CurrNode.ID+ numElection
+		numElection++
+		ElectionLeLann(msg, true)
 	}
 	
 	
@@ -135,15 +140,11 @@ func NotifyLeader(except Node, msg ElectionMsg){
 	var next *Node = CurrNode.Next
 	var reply int
 
-	if next == nil{
-		return
-	}
-	
-	
-	for next.ID != CurrNode.ID && next.ID != except.ID {
+
+	for next != nil && next.ID != CurrNode.ID && next.ID != except.ID {
 	
 		if IsAlive(CurrNode.Next.Addr) < 0 {
-			log.Fatal("Node %d not responding, passing to next...", next.ID)
+			log.Printf("Node %d not responding, passing to next...", next.ID)
 			next = next.Next
 			continue 
 		}
@@ -151,9 +152,9 @@ func NotifyLeader(except Node, msg ElectionMsg){
 		log.Printf("ELECTION %d FINISHED: Informing node %d I'm the leader",msg.ElectionID, next.ID)
 		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
 		if err != nil {
-			log.Fatal("Dial error", next.ID)
+			log.Fatal("Dial error", err)
 		}
-	
+		
 		msg.Candidate = CurrNode
 		err = client.Call("Peer.NewLeader", msg, &reply)
 		if err != nil {
@@ -186,6 +187,7 @@ func ElectionBully(msg ElectionMsg){
 		 	continue }
 		
 		log.Printf("STARTING ELECTION %d: Sending message to node %d", msg.ElectionID, peers[i].ID)
+		numElection++
 		
 		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
 		if err != nil {
@@ -246,10 +248,13 @@ func ElectionBully(msg ElectionMsg){
 
 
 
-func ElectionLeLann(msg ElectionMsg){
+
+
+func ElectionLeLann(msg ElectionMsg, starting bool){
 	var next *Node = CurrNode.Next
 	var reply int
 
+	election = true
 	//only one node in the system
 	if next == nil{
 		iamLeader = true
@@ -263,19 +268,20 @@ func ElectionLeLann(msg ElectionMsg){
 	for next.ID != CurrNode.ID {
 	
 		//checking if next node is responding. If not, passing to next one in the ring until one is reachable
-		if IsAlive(CurrNode.Next.Addr) < 0 {
-			log.Fatal("Node %d not responding, passing to next...", next.ID)
+		if IsAlive(next.Addr) < 0 {
+			log.Printf("Node %d not responding, passing to next %s...", next.ID, next.Next.Addr)
 			next = next.Next
 			continue 
 		}
 		
-		if election == false {
+		if starting {
 			log.Printf("STARTING ELECTION %d: Sending message to node %d", msg.ElectionID, next.ID)
+			numElection++
 		} else {
 			log.Printf("ELECTION %d: Sending message to node %d",msg.ElectionID, next.ID)
 		}
 		
-		client, err := rpc.DialHTTP("tcp", CurrNode.Next.Addr)
+		client, err := rpc.DialHTTP("tcp", next.Addr)
 		if err != nil {
 			log.Fatal("Dial error", next.ID)
 		}
@@ -295,12 +301,12 @@ func ElectionLeLann(msg ElectionMsg){
 		}
 		
 		client.Close()
-		election = true
 		return
 	}
 	
 	if next.ID == CurrNode.ID {
 		iamLeader = true
+		election = false
 		Leader = CurrNode
 		log.Printf("ELECTION %d: No working node in the network. I'm the leader", msg.ElectionID)
 		return
@@ -313,29 +319,30 @@ func ElectionLeLann(msg ElectionMsg){
 
 func CheckLeaderAlive(){
 
-	for {
-		var ret int
-		var msg ElectionMsg
 	
-		if Leader == (Node{}) {
-			msg.ElectionID = CurrNode.ID
-			msg.Candidate = CurrNode
-			msg.From = CurrNode
-			if algorithm == "lelann" {  ElectionLeLann(msg) 
-			} else { ElectionBully(msg) }
+		var ret int
+	
+		if reflect.ValueOf(Leader).IsZero() {
+			elMsg.ElectionID = CurrNode.ID
+			elMsg.Candidate = CurrNode
+			elMsg.From = CurrNode
+			if algorithm == "lelann" {  ElectionLeLann(elMsg, true) 
+			} else { ElectionBully(elMsg) }
 		
 		}
-	
+		
+	for {
+		time.Sleep(2 * time.Second) 
 		if iamLeader == false && election == false {
-			//log.Printf("Checking if leader is alive...")
+			//log.Printf("Checking if leader %d is alive...", Leader.ID)
 			ret = IsAlive(Leader.Addr)
 			if ret < 0 {
-				msg.ElectionID = CurrNode.ID
-				msg.Candidate = CurrNode
-				msg.From = CurrNode
+				elMsg.ElectionID = CurrNode.ID
+				elMsg.Candidate = CurrNode
+				elMsg.From = CurrNode
 				log.Printf("Leader is not responding")
-				if algorithm == "lelann" {  ElectionLeLann(msg) 
-				} else { ElectionBully(msg) }
+				if algorithm == "lelann" {  ElectionLeLann(elMsg, true) 
+				} else { ElectionBully(elMsg) }
 			}
 		}
 	}
@@ -345,10 +352,11 @@ func IsAlive(addr string) int {
 	ret :=0
 	client, err := net.DialTimeout("tcp", addr, 5*time.Second )
 	if err != nil {
-		ret = -1
+		return -1
 	
+	} else {
+		client.Close()
 	}
-	client.Close()
 	
 	return ret
 

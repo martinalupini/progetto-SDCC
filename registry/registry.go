@@ -81,10 +81,11 @@ func generateID(newNode Node) int {
 
 
 func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
-	
+	var newPeer Node
 	//generating ID
 	reply.ID = generateID(newNode)
-	newNode.ID = reply.ID
+	newPeer.ID = reply.ID
+	newPeer.Addr = strings.Clone(newNode.Addr)
 	
 	//selecting the algoritm 
 	reply.Algorithm = algorithm
@@ -98,25 +99,27 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 			if lastPeer < 0 {
 				reply.Next = Node{} //empty struct
 				reply.Prev = Node{}
-				newNode.Next = nil
-				newNode.Prev = nil
+				newPeer.Next = nil
+				newPeer.Prev = nil
 			}else{
 				//peers[0].Prev = &newNode
 				//peers[lastPeer].Next = &newNode
-				reply.Next = peers[0]
-				reply.Prev = peers[lastPeer]
-				newNode.Next = &peers[0]
-				newNode.Prev = &peers[lastPeer]
-				
+				//reply.Next = peers[0]
+				//reply.Prev = peers[lastPeer]
+				newPeer.Next = &peers[0]
+				newPeer.Prev = &peers[lastPeer]
+
 				//updating prev and next
 				if entry, ok := mapIDAddr[peers[0].Addr]; ok {
-					entry.Prev = &newNode
+					entry.Prev = &newPeer
       					mapIDAddr[peers[0].Addr] = entry
+      					reply.Next = entry
       				}
-      				
+
       				if entry, ok := mapIDAddr[peers[lastPeer].Addr]; ok {
-					entry.Next = &newNode
+					entry.Next = &newPeer
       					mapIDAddr[peers[lastPeer].Addr] = entry
+      					reply.Prev = entry
       				}
 			}
 			lastPeer++
@@ -129,19 +132,19 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 	} else {
 		var i int
 		for i=0; i<len(peers); i++ {
-			var newPeer Node
-			newPeer.ID = peers[i].ID
-			newPeer.Addr = strings.Clone(peers[i].Addr)
-			reply.Peers = append(reply.Peers, newPeer)
+			var Peer Node
+			Peer.ID = peers[i].ID
+			Peer.Addr = strings.Clone(peers[i].Addr)
+			reply.Peers = append(reply.Peers, Peer)
 		
 		}
 	}
 	
 	if present == false {
 		//adding peer to the service registry data structures
-		mapIDAddr[newNode.Addr] = newNode
-		peers = append(peers, newNode)
-		log.Printf("New peer address: %s ID:%d",newNode.Addr,mapIDAddr[newNode.Addr].ID)
+		mapIDAddr[newPeer.Addr] = newPeer
+		peers = append(peers, newPeer)
+		log.Printf("New peer address: %s ID:%d",newPeer.Addr,mapIDAddr[newPeer.Addr].ID)
 	}
 	
 	//TO REMOVE
