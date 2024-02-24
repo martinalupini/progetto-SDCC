@@ -17,19 +17,14 @@ type ServiceRegistry string
 type Node struct{
 	ID int
 	Addr string
-	Next *Node
-	Prev *Node
-
+	Pos int
 } 
 
 
 type Neighbours struct {
 	ID int
 	Algorithm string
-	//LeLann
-	Prev Node
-	Next Node
-	//Bully
+	Pos int
 	Peers []Node
 	Present bool
 }
@@ -37,11 +32,11 @@ type Neighbours struct {
 
 // variables of the registry //
 var peers []Node
-var mapIDAddr = make(map[string]Node)
-var lastPeer = -1
+var lastPeer = 0
 var algorithm string
 var assignedID []int
-var present = false
+var present = false 
+var oldPos int
 
 
 // auxiliary functions of the service registry //
@@ -62,14 +57,18 @@ AddNode: function invoked by the peer when it wants to enter the network. The se
 
 func generateID(newNode Node) int {
 	var id int
-	var node Node
+	var i int
 	
 	present = false
 	//checking if node were already in the system
-	node, ok := mapIDAddr[newNode.Addr]
-	if ok {  
-		present = true
-		return node.ID }
+	for i=0; i<len(peers); i++ {
+		if peers[i].Addr == newNode.Addr {
+			present = true
+			oldPos = i
+			return peers[i].ID
+		}	
+	
+	}
 	
 	//if node does not exists I need to generate an ID
 	for {
@@ -81,73 +80,28 @@ func generateID(newNode Node) int {
 
 
 func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
-	var newPeer Node
+	
 	//generating ID
 	reply.ID = generateID(newNode)
-	newPeer.ID = reply.ID
-	newPeer.Addr = strings.Clone(newNode.Addr)
+	newNode.ID = reply.ID
 	
 	//selecting the algoritm 
 	reply.Algorithm = algorithm
-	
 	reply.Present = present
 	
-	if algorithm == "lelann" {
-		if present == false {
-		
-			//adding prev and next node
-			if lastPeer < 0 {
-				reply.Next = Node{} //empty struct
-				reply.Prev = Node{}
-				newPeer.Next = nil
-				newPeer.Prev = nil
-			}else{
-				//peers[0].Prev = &newNode
-				//peers[lastPeer].Next = &newNode
-				//reply.Next = peers[0]
-				//reply.Prev = peers[lastPeer]
-				newPeer.Next = &peers[0]
-				newPeer.Prev = &peers[lastPeer]
-
-				//updating prev and next
-				if entry, ok := mapIDAddr[peers[0].Addr]; ok {
-					entry.Prev = &newPeer
-      					mapIDAddr[peers[0].Addr] = entry
-      					reply.Next = entry
-      				}
-
-      				if entry, ok := mapIDAddr[peers[lastPeer].Addr]; ok {
-					entry.Next = &newPeer
-      					mapIDAddr[peers[lastPeer].Addr] = entry
-      					reply.Prev = entry
-      				}
-			}
-			lastPeer++
-		} else {
-			//node already present in the system
-			reply.Next = *(mapIDAddr[newNode.Addr].Next)
-			reply.Prev = *(mapIDAddr[newNode.Addr].Prev)
-		
-		}
-	} else {
-		var i int
-		for i=0; i<len(peers); i++ {
-			var Peer Node
-			Peer.ID = peers[i].ID
-			Peer.Addr = strings.Clone(peers[i].Addr)
-			reply.Peers = append(reply.Peers, Peer)
-		
-		}
-	}
-	
 	if present == false {
-		//adding peer to the service registry data structures
-		mapIDAddr[newPeer.Addr] = newPeer
-		peers = append(peers, newPeer)
-		log.Printf("New peer address: %s ID:%d",newPeer.Addr,mapIDAddr[newPeer.Addr].ID)
+		reply.Pos = lastPeer
+		lastPeer++
+		peers = append(peers, newNode)
+			
+	} else {
+		reply.Pos = oldPos
+		
 	}
 	
-	//TO REMOVE
+	reply.Peers = peers
+	log.Printf("New peer address: %s ID:%d",newNode.Addr,newNode.ID)
+
 	log.Printf("Current peers in the system:") 
 	printPeers()
 	
