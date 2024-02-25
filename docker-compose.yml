@@ -1,0 +1,146 @@
+version: "3"
+
+services:
+  registry:
+    build:
+      context: ./ 
+      dockerfile: ./Docker/registry/Dockerfile 
+    ports:
+      - "1234:1234" 
+    networks:
+      - node_network
+
+  node1:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50001:50001" 
+    environment:
+      - PORT=50001 
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node2:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50002:50002" 
+    environment:
+      - PORT=50002 
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node3:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50003:50003" 
+    environment:
+      - PORT=50003
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node4:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50004:50004" 
+    environment:
+      - PORT=50004
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node5:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50005:50005" 
+    environment:
+      - PORT=50005
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node6:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50006:50006" 
+    environment:
+      - PORT=50006
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node7:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50007:50007" 
+    environment:
+      - PORT=50007
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node8:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50008:50008" 
+    environment:
+      - PORT=50008
+    networks:
+      - node_network
+    depends_on:
+      - registry
+      
+  node9:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50009:50009" 
+    environment:
+      - PORT=50009
+    networks:
+      - node_network
+    depends_on:
+      - registry
+
+  node10:
+    build:
+      context: ./
+      dockerfile: ./Docker/node/Dockerfile
+    ports:
+      - "50010:50010" 
+    environment:
+      - PORT=50010
+    networks:
+      - node_network
+    depends_on:
+      - registry
+      
+      
+networks:
+  node_network:
+    driver: bridge

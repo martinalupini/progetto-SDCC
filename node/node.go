@@ -7,8 +7,8 @@ import (
 	"net/rpc"
 	"net/http"
 	"time"
-	"strings"
 	"reflect"
+	"os"
 )
 
 type Peer string
@@ -400,11 +400,13 @@ func GetPeers() {
 func main() {
 	
 	var port string
+	/*
 	_, err := fmt.Scanln(&port)
     	if err != nil {
         	log.Fatal(err)
     	}
-    	port = strings.TrimRight(port, "\n")
+    	port = strings.TrimRight(port, "\n")*/
+    	port = os.Getenv("PORT")
 
 	peer := new(Peer)
 	rpc.Register(peer)
