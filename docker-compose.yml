@@ -5,6 +5,7 @@ services:
     build:
       context: ./ 
       dockerfile: ./Docker/registry/Dockerfile 
+    container_name: registry
     ports:
       - "1234:1234" 
     networks:
@@ -14,10 +15,12 @@ services:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node1
     ports:
       - "50001:50001" 
     environment:
       - PORT=50001 
+      - HOSTNAME=node1
     networks:
       - node_network
     depends_on:
@@ -27,118 +30,181 @@ services:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node2
     ports:
       - "50002:50002" 
     environment:
       - PORT=50002 
+      - HOSTNAME=node2
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
 
   node3:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node3
     ports:
       - "50003:50003" 
     environment:
       - PORT=50003
+      - HOSTNAME=node3
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
 
   node4:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node4
     ports:
       - "50004:50004" 
     environment:
       - PORT=50004
+      - HOSTNAME=node4
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
 
   node5:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node5
     ports:
       - "50005:50005" 
     environment:
       - PORT=50005
+      - HOSTNAME=node5
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
 
   node6:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node6
     ports:
       - "50006:50006" 
     environment:
       - PORT=50006
+      - HOSTNAME=node6
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
 
   node7:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node7
     ports:
       - "50007:50007" 
     environment:
       - PORT=50007
+      - HOSTNAME=node7
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+      - node6
 
   node8:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node8
     ports:
       - "50008:50008" 
     environment:
       - PORT=50008
+      - HOSTNAME=node8
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+      - node6
+      - node7
       
   node9:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node9
     ports:
       - "50009:50009" 
     environment:
       - PORT=50009
+      - HOSTNAME=node9
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+      - node6
+      - node7
+      - node8
 
   node10:
     build:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
+    container_name: node10
     ports:
       - "50010:50010" 
     environment:
       - PORT=50010
+      - HOSTNAME=node10
     networks:
       - node_network
     depends_on:
       - registry
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+      - node6
+      - node7
+      - node8
+      - node9
       
       
 networks:

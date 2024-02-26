@@ -51,11 +51,13 @@ var electionStarted = 0
 
 
 func printPeers(){
+	var p = fmt.Sprintf("NODE %d --- PEERS:  ", CurrNode.ID)
 	var i int
 	for i=0; i<len(peers); i++ {
-		log.Printf("%d:ID %d Address %s", i,peers[i].ID, peers[i].Addr)
+		p = p+ fmt.Sprintf("%d:ID %d Address %s  ", i,peers[i].ID, peers[i].Addr)
 	
 	}
+	log.Printf(p)
 }
 
 // RPC LeLan ///////////////////////
@@ -63,20 +65,20 @@ func printPeers(){
 func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 
 	if msg.Candidate.ID == CurrNode.ID {
-		log.Printf("ELECTION %d number %d phase %d: I'm the leader", msg.StarterID, msg.Number, msg.Phase)
+		log.Printf("NODE %d --- ELECTION %d number %d phase %d: I'm the leader",CurrNode.ID, msg.StarterID, msg.Number, msg.Phase)
 		iamLeader = true
 		election = false
 		*reply = 1
 		NotifyLeader(msg)
 	}else if msg.Candidate.ID > CurrNode.ID {
 		election = true
-		log.Printf("ELECTION %d number %d phase %d: Node %d wants to be candidate. Sending message to next node",msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
+		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d wants to be candidate. Sending message to next node", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
 		msg.From = CurrNode
 		msg.Phase++
 		ElectionLeLann(msg, false)
 	}else{
 		election = true
-		log.Printf("ELECTION %d number %d phase %d: Node %d has lower ID then mine. Running for the election :)",msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
+		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d has lower ID then mine. Running for the election :)", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
 		msg.Candidate = CurrNode
 		msg.From = CurrNode
 		msg.StarterID = CurrNode.ID
@@ -94,7 +96,7 @@ func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 func (p *Peer) ElectionBully(msg ElectionMsg, reply *int) error {
 	election = true
 	if msg.Candidate.ID < CurrNode.ID {
-		log.Printf("ELECTION %d number %d phase %d: Candidate has lower ID then mine. Starting new ELECTION %d", msg.StarterID, msg.Number, msg.Phase, CurrNode.ID)
+		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Candidate has lower ID then mine. Starting new ELECTION %d", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, CurrNode.ID)
 		msg.StarterID = CurrNode.ID
 		msg.Number = electionStarted
 		msg.Candidate = CurrNode
@@ -111,7 +113,7 @@ func (p *Peer) NewLeader(msg ElectionMsg, reply *int) error {
 	iamLeader = false
 	election = false
 	Leader = msg.Candidate
-	log.Printf("ELECTION %d number %d FINISHED: New leader is node %d",msg.StarterID, msg. Number, msg.Candidate.ID) 
+	log.Printf("NODE %d --- ELECTION %d number %d FINISHED: New leader is node %d", CurrNode.ID, msg.StarterID, msg. Number, msg.Candidate.ID) 
 	
 	return nil
 
@@ -122,7 +124,7 @@ func (p *Peer) NewPeer(newNode Node, reply *int) error {
  
  	peers = append(peers, newNode)
 	totalPeers++
-	log.Printf("Added peer with ID %d and address %s at pos %d", newNode.ID, newNode.Addr, newNode.Pos)
+	log.Printf("NODE %d --- Added peer with ID %d and address %s at pos %d", CurrNode.ID, newNode.ID, newNode.Addr, newNode.Pos)
 	return nil
 
 }
@@ -134,7 +136,7 @@ func NotifyLeader(msg ElectionMsg){
 	var i int
 	var reply int
 
-	log.Printf("ELECTION %d number %d: Informing other nodes I'm the leader", msg.StarterID, msg.Number)
+	log.Printf("NODE %d --- ELECTION %d number %d: Informing other nodes I'm the leader", CurrNode.ID, msg.StarterID, msg.Number)
 
 	for i=0; i<len(peers); i++ {
 		
@@ -171,7 +173,7 @@ func ElectionBully(msg ElectionMsg){
 		election = false
 		iamLeader = true
 		Leader = CurrNode
-		log.Printf("STARTING ELECTION %d number %d: I'm the only node in the network. I'm the leader", msg.StarterID, msg.Number) 
+		log.Printf("NODE %d --- STARTING ELECTION %d number %d: I'm the only node in the network. I'm the leader", CurrNode.ID, msg.StarterID, msg.Number) 
 		return
 		
 	}
@@ -180,7 +182,7 @@ func ElectionBully(msg ElectionMsg){
 		
 		if peers[i].ID > CurrNode.ID {
 			major = append(major, peers[i])
-			log.Printf("STARTING ELECTION %d number %d: Sending message to node %d", msg.StarterID, msg.Number, peers[i].ID)
+			log.Printf("NODE %d --- STARTING ELECTION %d number %d: Sending message to node %d", CurrNode.ID, msg.StarterID, msg.Number, peers[i].ID)
 		}
 		
 		i = (i+1) % totalPeers
@@ -192,7 +194,7 @@ func ElectionBully(msg ElectionMsg){
 	
 		//checking if node is alive	
 		if IsAlive(peers[i].Addr) < 0 { 
-			log.Printf("ELECTION %d number %d: node %d is not working",msg.StarterID, msg.Number, major[i].ID)
+			log.Printf("NODE %d --- ELECTION %d number %d: node %d is not working", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
 			continue }
 		
 		client, err := rpc.DialHTTP("tcp", major[i].Addr)
@@ -200,7 +202,7 @@ func ElectionBully(msg ElectionMsg){
 			log.Fatal("Dial error", err)
 		}
 		
-		log.Printf("ELECTION %d number %d FINISHED: I'm not the leader. Received OK message from node %d",msg.StarterID, msg.Number, major[i].ID)
+		log.Printf("NODE %d --- ELECTION %d number %d FINISHED: I'm not the leader. Received OK message from node %d", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
 		
 		err = client.Call("Peer.ElectionBully", msg, &reply)
 		if err != nil {
@@ -230,29 +232,40 @@ func ElectionLeLann(msg ElectionMsg, starting bool){
 	election = true
 	
 	for i< len(peers){
+	
+		if len(peers) == 0 {
+			iamLeader = true
+			election = false
+			Leader = CurrNode
+			log.Printf("NODE %d --- STARTING ELECTION %d number %d: I'm the only node in the network. I'm the leader", CurrNode.ID, msg.StarterID, msg.Number)
+			return
+		
+		}
 		
 		//checking if all nodes are not working
 		if i == CurrNode.Pos {
 			iamLeader = true
 			election = false
 			Leader = CurrNode
-			log.Printf("ELECTION %d number %d: No working node in the network. I'm the leader", msg.StarterID, msg.Number)
+			if starting { log.Printf("NODE %d --- STARTING ELECTION %d number %d: No working node in the network. I'm the leader", CurrNode.ID, msg.StarterID, msg.Number)
+			} else {
+				log.Printf("NODE %d --- ELECTION %d number %d: No working node in the network. I'm the leader", CurrNode.ID, msg.StarterID, msg.Number) }
 			return
 		
 		}
 		
 		//checking if next node is responding. If not, passing to next one in the ring until one is reachable
 		if IsAlive(peers[i].Addr) < 0 {
-			log.Printf("Node %d not responding, passing to next %s...", peers[i].ID, peers[i].Addr)
+			log.Printf("NODE %d --- Node %d not responding, passing to next %s...", CurrNode.ID, peers[i].ID, peers[i].Addr)
 			i++
 			i = i % totalPeers
 			continue 
 		}
 		
 		if starting {
-			log.Printf("STARTING ELECTION %d number %d: Sending message to node %d", msg.StarterID, msg.Number, peers[i].ID)
+			log.Printf("NODE %d --- STARTING ELECTION %d number %d: Sending message to node %d", CurrNode.ID, msg.StarterID, msg.Number, peers[i].ID)
 		} else {
-			log.Printf("ELECTION %d number %d phase %d: Sending message to node %d",msg.StarterID, msg.Number, msg.Phase, peers[i].ID)
+			log.Printf("NODE %d --- ELECTION %d number %d phase %d: Sending message to node %d",CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, peers[i].ID)
 		}
 		
 		msg.Phase++
@@ -271,7 +284,7 @@ func ElectionLeLann(msg ElectionMsg, starting bool){
 			iamLeader = false
 			election = false 
 			Leader = peers[i]
-			log.Printf("ELECTION %d number %d FINISHED: New leader is %d",msg.StarterID, msg.Number, Leader.ID)
+			log.Printf("NODE %d --- ELECTION %d number %d FINISHED: New leader is %d", CurrNode.ID, msg.StarterID, msg.Number, Leader.ID)
 		}
 		
 		client.Close()
@@ -312,7 +325,7 @@ func CheckLeaderAlive(){
 				msg.Candidate = CurrNode
 				msg.From = CurrNode
 				electionStarted++
-				log.Printf("Leader is not responding")
+				log.Printf("NODE %d --- Leader is not responding", CurrNode.ID)
 				if algorithm == "lelann" {  ElectionLeLann(msg, true) 
 				} else { ElectionBully(msg) }
 			}
@@ -368,7 +381,7 @@ func updatePeers(proc string) {
 
 func GetPeers() {
 
-	serviceRegistry := "localhost:1234"
+	serviceRegistry := "registry:1234"
 	var reply Neighbours
 	
 	//connection to service registry 
@@ -390,35 +403,34 @@ func GetPeers() {
 	peers = reply.Peers
 	totalPeers = len(peers)
 	
-	log.Printf("Peer with ID %d listens on %s. Current peers are",CurrNode.ID, CurrNode.Addr)
-	printPeers()
+	//log.Printf("NODE %d --- Hi I'm the node with ID %d and I listen on %s",CurrNode.ID, CurrNode.ID, CurrNode.Addr)
+	//printPeers()
 	
 	if reply.Present == false { updatePeers("NewPeer") }
 
 }
 
+
 func main() {
 	
 	var port string
-	/*
-	_, err := fmt.Scanln(&port)
-    	if err != nil {
-        	log.Fatal(err)
-    	}
-    	port = strings.TrimRight(port, "\n")*/
+	var hostname string
+	
     	port = os.Getenv("PORT")
+    	hostname = os.Getenv("HOSTNAME")
+
 
 	peer := new(Peer)
 	rpc.Register(peer)
 	rpc.HandleHTTP()
 	
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	CurrNode.Addr = fmt.Sprintf("%s:%s",hostname, port)
+	
+	lis, err := net.Listen("tcp", CurrNode.Addr )
 	
 	if err != nil {
 		log.Fatal("Error while starting RPC server:", err)
 	}
-	
-	CurrNode.Addr = fmt.Sprintf("localhost:%s", port)
 
 	GetPeers()
 	

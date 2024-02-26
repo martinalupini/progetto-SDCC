@@ -9,6 +9,8 @@ import (
 	"strings"
 	"math/rand"
 	"slices"
+	"bufio"
+	"os"
 )
 
 type ServiceRegistry string
@@ -33,7 +35,7 @@ type Neighbours struct {
 // variables of the registry //
 var peers []Node
 var lastPeer = 0
-var algorithm string
+var algorithm = ""
 var assignedID []int
 var present = false 
 var oldPos int
@@ -41,11 +43,13 @@ var oldPos int
 
 // auxiliary functions of the service registry //
 func printPeers(){
+	var p = "REGISTRY --- PEERS:  "
 	var i int
 	for i=0; i<len(peers); i++ {
-		log.Printf("%d:ID %d Address %s", i,peers[i].ID, peers[i].Addr)
+		p = p+ fmt.Sprintf("%d:ID %d Address %s  ", i,peers[i].ID, peers[i].Addr)
 	
 	}
+	log.Printf(p)
 }
 
 
@@ -100,45 +104,44 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 	}
 	
 	reply.Peers = peers
-	log.Printf("New peer address: %s ID:%d",newNode.Addr,newNode.ID)
+	log.Printf("REGISTRY ---  New peer address: %s ID:%d",newNode.Addr,newNode.ID)
 
-	log.Printf("Current peers in the system:") 
-	printPeers()
-	
 	return nil
 }
 
 
 func main() {
-	var alg string
 	
-    	for {
-    		
-		fmt.Println("Select one algorithm between LeLann and Bully:")
-    		_, err := fmt.Scanln(&alg)
-    		if err != nil {
-        		log.Fatal(err)
-    		}
-    		alg = strings.ToLower(alg)
-    		alg = strings.TrimRight(alg, "\n")
-    		if alg != "lelann" && alg != "bully" { 
-    			fmt.Println("Your selection is not valide. Please select one algorithm between LeLann and Bully:")
-    		}else{
-    			break
-    		}
+	//reading from the configuration file what algorithm to use
+	readFile, err := os.Open("../configuration.txt")
+  
+    	if err != nil {
+        	fmt.Println(err)
     	}
-    	
-    	algorithm = alg	
+    	fileScanner := bufio.NewScanner(readFile)
 
+    	fileScanner.Scan() 
+    	algorithm = fileScanner.Text()
+    
+    	readFile.Close()
+	
+ 	algorithm = strings.ToLower(algorithm)
+    	algorithm = strings.TrimRight(algorithm, "\n")
+    	
+    	//the default algorithm is Lelann
+    	if algorithm != "lelann" && algorithm != "bully" {   algorithm = "lelann"  }
+
+
+	algorithm = "lelann"
 	serviceRegistry := new(ServiceRegistry)
 	rpc.Register(serviceRegistry)
 	rpc.HandleHTTP()
 	
-	lis, err := net.Listen("tcp", ":1234")
+	lis, err := net.Listen("tcp", "registry:1234")
 	if err != nil {
-		log.Fatal("Error while starting registry:", err)
+		log.Fatal("REGISTRY --- Error while starting registry:", err)
 	}
-	log.Printf("Registry listens on port %d", 1234)
+	log.Printf("REGISTRY --- Registry listens on port %d", 1234)
 
 	http.Serve(lis, nil)
 	

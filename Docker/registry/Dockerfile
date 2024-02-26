@@ -10,4 +10,5 @@ RUN go build -o registry-exe ./registry/registry.go
 EXPOSE 1234
  
 # Specifies the executable command that runs when the container starts
-CMD [ “./registry-exe” ]
+CMD [ "./registry-exe" ]
+
