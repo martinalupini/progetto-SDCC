@@ -301,7 +301,7 @@ func CheckLeaderAlive(){
 	var ret int
 	var msg ElectionMsg
 	
-	if reflect.ValueOf(Leader).IsZero() && election == false {
+	if reflect.ValueOf(Leader).IsZero() {
 		msg.StarterID = CurrNode.ID
 		msg.Number = electionStarted
 		msg.Phase = 0
