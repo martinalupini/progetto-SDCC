@@ -62,7 +62,7 @@ func printPeers(){
 
 // RPC LeLan ///////////////////////
 
-func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
+func (p *Peer) ElectionLeaderCR(msg ElectionMsg, reply *int) error {
 
 	if msg.Candidate.ID == CurrNode.ID {
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: I'm the leader",CurrNode.ID, msg.StarterID, msg.Number, msg.Phase)
@@ -75,7 +75,7 @@ func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d wants to be candidate. Sending message to next node", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
 		msg.From = CurrNode
 		msg.Phase++
-		ElectionLeLann(msg, false)
+		ElectionCR(msg, false)
 	}else{
 		election = true
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d has lower ID then mine. Running for the election :)", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
@@ -85,7 +85,7 @@ func (p *Peer) ElectionLeaderLeLann(msg ElectionMsg, reply *int) error {
 		msg.Number = electionStarted
 		msg.Phase = 0
 		electionStarted++
-		ElectionLeLann(msg, true)
+		ElectionCR(msg, true)
 	}
 	
 	
@@ -209,9 +209,10 @@ func ElectionBully(msg ElectionMsg){
 			log.Fatal("Error while calling RPC:", err)
 		}
 		
-		if reply == -1 {  iamLeader = false}
+		if reply == -1 { iamLeader = false}
 		
 		client.Close()
+		return
 	}
 	
 	iamLeader = true
@@ -225,7 +226,7 @@ func ElectionBully(msg ElectionMsg){
 
 
 
-func ElectionLeLann(msg ElectionMsg, starting bool){
+func ElectionCR(msg ElectionMsg, starting bool){
 	var i= (CurrNode.Pos + 1) % totalPeers //starting from next node
 	var reply int
 
@@ -275,7 +276,7 @@ func ElectionLeLann(msg ElectionMsg, starting bool){
 			log.Fatal("Dial error", peers[i].ID)
 		}
 	
-		err = client.Call("Peer.ElectionLeaderLeLann", msg, &reply)
+		err = client.Call("Peer.ElectionLeaderCR", msg, &reply)
 		if err != nil {
 			log.Fatal("Error while calling RPC:", err)
 		}
@@ -301,14 +302,14 @@ func CheckLeaderAlive(){
 	var ret int
 	var msg ElectionMsg
 	
-	if reflect.ValueOf(Leader).IsZero() {
+	if reflect.ValueOf(Leader).IsZero() && election == false {
 		msg.StarterID = CurrNode.ID
 		msg.Number = electionStarted
 		msg.Phase = 0
 		msg.Candidate = CurrNode
 		msg.From = CurrNode
 		electionStarted++
-		if algorithm == "lelann" {  ElectionLeLann(msg, true) 
+		if algorithm == "chang-robert" {  ElectionCR(msg, true) 
 		} else { ElectionBully(msg) }
 		
 	}
@@ -326,7 +327,7 @@ func CheckLeaderAlive(){
 				msg.From = CurrNode
 				electionStarted++
 				log.Printf("NODE %d --- Leader is not responding", CurrNode.ID)
-				if algorithm == "lelann" {  ElectionLeLann(msg, true) 
+				if algorithm == "chang-robert" {  ElectionCR(msg, true) 
 				} else { ElectionBully(msg) }
 			}
 		}

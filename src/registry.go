@@ -91,6 +91,7 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 	
 	//selecting the algoritm 
 	reply.Algorithm = algorithm
+	
 	reply.Present = present
 	
 	if present == false {
@@ -113,7 +114,7 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 func main() {
 	
 	//reading from the configuration file what algorithm to use
-	readFile, err := os.Open("../configuration.txt")
+	readFile, err := os.Open("configuration.txt")
   
     	if err != nil {
         	fmt.Println(err)
@@ -129,10 +130,8 @@ func main() {
     	algorithm = strings.TrimRight(algorithm, "\n")
     	
     	//the default algorithm is Lelann
-    	if algorithm != "lelann" && algorithm != "bully" {   algorithm = "lelann"  }
-
-
-	algorithm = "lelann"
+    	if algorithm != "chang-robert" && algorithm != "bully" {   algorithm = "bully"  }
+    	
 	serviceRegistry := new(ServiceRegistry)
 	rpc.Register(serviceRegistry)
 	rpc.HandleHTTP()
