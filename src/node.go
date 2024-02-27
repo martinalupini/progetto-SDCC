@@ -369,7 +369,7 @@ func CheckLeaderAlive(){
 		msg.Candidate = CurrNode
 		msg.From = CurrNode
 		electionStarted++
-		if algorithm == "chang-robert" {  ElectionCR(msg, true) 
+		if algorithm == "chang-roberts" {  ElectionCR(msg, true) 
 		} else { ElectionBully(msg) }
 		
 	}
@@ -387,7 +387,7 @@ func CheckLeaderAlive(){
 				msg.From = CurrNode
 				electionStarted++
 				log.Printf("NODE %d --- Leader is not responding", CurrNode.ID)
-				if algorithm == "chang-robert" {  ElectionCR(msg, true) 
+				if algorithm == "chang-roberts" {  ElectionCR(msg, true) 
 				} else { ElectionBully(msg) }
 			}
 		}

@@ -145,7 +145,7 @@ func main() {
     	algorithm = strings.TrimRight(algorithm, "\n")
     	
     	//the default algorithm is Bully
-    	if algorithm != "chang-robert" && algorithm != "bully" {   algorithm = "bully"  }
+    	if algorithm != "chang-roberts" && algorithm != "bully" {   algorithm = "bully"  }
     	
 	serviceRegistry := new(ServiceRegistry)
 	rpc.Register(serviceRegistry)
