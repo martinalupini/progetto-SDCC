@@ -33,15 +33,25 @@ type Neighbours struct {
 
 
 // variables of the registry //
+
+//peers in the network
 var peers []Node
+//index of last node
 var lastPeer = 0
+//algorithm chosen
 var algorithm = ""
+//IDs already assigned
 var assignedID []int
+//if the node that joins the network was already in the network
 var present = false 
+//the old index of the node if already in the network
 var oldPos int
 
 
 // auxiliary functions of the service registry //
+/*
+*  printPeers shows the peers in the system
+*/
 func printPeers(){
 	var p = "REGISTRY --- PEERS:  "
 	var i int
@@ -56,9 +66,10 @@ func printPeers(){
 // RPC functions //
 
 /*
-AddNode: function invoked by the peer when it wants to enter the network. The service registry generates the unique ID for the peer.
+*  generateID is used by the service registry to check if the node had already joined the newtork in the past 
+*  (and if so, retrieves all the information about the node). If not, the registry generates the unique ID for the node.
+*  @newNode: the new node to check
 */
-
 func generateID(newNode Node) int {
 	var id int
 	var i int
@@ -82,7 +93,11 @@ func generateID(newNode Node) int {
 	}
 }
 
-
+/*
+*  AddNode is invoked by the node when it wants to enter the network
+*  @newNode: the new node to add
+*  @reply: the reply to the node
+*/
 func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 	
 	//generating ID
@@ -129,7 +144,7 @@ func main() {
  	algorithm = strings.ToLower(algorithm)
     	algorithm = strings.TrimRight(algorithm, "\n")
     	
-    	//the default algorithm is Lelann
+    	//the default algorithm is Bully
     	if algorithm != "chang-robert" && algorithm != "bully" {   algorithm = "bully"  }
     	
 	serviceRegistry := new(ServiceRegistry)

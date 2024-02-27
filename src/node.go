@@ -13,7 +13,8 @@ import (
 
 type Peer string
 
-// struct used in RPC //
+
+// structs used in RPC communication //
 type Neighbours struct {
 	ID int
 	Algorithm string
@@ -38,44 +39,51 @@ type ElectionMsg struct {
 
 }
 
-// variables of the registry //
+// variables of the node //
+
+//info related to the current node
 var CurrNode Node
+//the current leader
 var Leader = Node{}
+//the peers in the network
 var peers []Node
+//signals I'm the leader
 var iamLeader = false
+//signals there is an election in progress
 var election = false
+//algorithm chosen
 var algorithm string
+//number of total peers in the system
 var totalPeers = 0
+//number of elections started by the current node
 var electionStarted = 0
 
 
+// here start the RPC functions //
 
-func printPeers(){
-	var p = fmt.Sprintf("NODE %d --- PEERS:  ", CurrNode.ID)
-	var i int
-	for i=0; i<len(peers); i++ {
-		p = p+ fmt.Sprintf("%d:ID %d Address %s  ", i,peers[i].ID, peers[i].Addr)
-	
-	}
-	log.Printf(p)
-}
-
-// RPC LeLan ///////////////////////
-
+/* 
+*  ElectionLeaderCR is invoked to send an election message to the other node. It implements Chang-Roberts' leader election algorithm
+*  @msg: the election message
+*  @reply: reply to election message
+*/
 func (p *Peer) ElectionLeaderCR(msg ElectionMsg, reply *int) error {
 
+	//if same ID then I'm the leader
 	if msg.Candidate.ID == CurrNode.ID {
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: I'm the leader",CurrNode.ID, msg.StarterID, msg.Number, msg.Phase)
 		iamLeader = true
 		election = false
 		*reply = 1
 		NotifyLeader(msg)
+	//if smaller ID then I pass the message to new available node in the ring
 	}else if msg.Candidate.ID > CurrNode.ID {
 		election = true
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d wants to be candidate. Sending message to next node", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
 		msg.From = CurrNode
 		msg.Phase++
 		ElectionCR(msg, false)
+		
+	//if bigger ID I drop the message and start a new election
 	}else{
 		election = true
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Node %d has lower ID then mine. Running for the election :)", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, msg.Candidate.ID)
@@ -92,9 +100,15 @@ func (p *Peer) ElectionLeaderCR(msg ElectionMsg, reply *int) error {
 	return nil
 }
 
-
+/* 
+*  ElectionLeaderBully is invoked to send an election message to the other node. It implements Bully leader election algorithm
+*  @msg: the election message
+*  @reply: reply to election message
+*/
 func (p *Peer) ElectionBully(msg ElectionMsg, reply *int) error {
 	election = true
+	
+	//if I receive an election message from a node with smaller ID I respond to it and start a new election
 	if msg.Candidate.ID < CurrNode.ID {
 		log.Printf("NODE %d --- ELECTION %d number %d phase %d: Candidate has lower ID then mine. Starting new ELECTION %d", CurrNode.ID, msg.StarterID, msg.Number, msg.Phase, CurrNode.ID)
 		msg.StarterID = CurrNode.ID
@@ -109,6 +123,11 @@ func (p *Peer) ElectionBully(msg ElectionMsg, reply *int) error {
 }
 
 
+/* 
+*  NewLeader is invoked to communicate the election of a new leader.
+*  @msg: the leader message
+*  @reply: reply to leader message
+*/
 func (p *Peer) NewLeader(msg ElectionMsg, reply *int) error {
 	iamLeader = false
 	election = false
@@ -119,7 +138,11 @@ func (p *Peer) NewLeader(msg ElectionMsg, reply *int) error {
 
 }
 
-
+/* 
+*  NewPeer is invoked by a new node joining the network to communicate its presence
+*  @newNode: the new node
+*  @reply: reply 
+*/
 func (p *Peer) NewPeer(newNode Node, reply *int) error {
  
  	peers = append(peers, newNode)
@@ -130,8 +153,26 @@ func (p *Peer) NewPeer(newNode Node, reply *int) error {
 }
 
 
-//////////////////////////////
+// here start the internal function of the node //
 
+/*
+*  printPeers is used to print the peers of the node
+*/
+func printPeers(){
+	var p = fmt.Sprintf("NODE %d --- PEERS:  ", CurrNode.ID)
+	var i int
+	for i=0; i<len(peers); i++ {
+		p = p+ fmt.Sprintf("%d:ID %d Address %s  ", i,peers[i].ID, peers[i].Addr)
+	
+	}
+	log.Printf(p)
+}
+
+
+/* 
+*  NotifyLeader is used to connect to the other peers and communicate I'm the leader
+*  @msg: the leader message
+*/
 func NotifyLeader(msg ElectionMsg){
 	var i int
 	var reply int
@@ -162,6 +203,10 @@ func NotifyLeader(msg ElectionMsg){
 
 }
 
+/* 
+*  ElectionBully is used to start a new election using the Bully algorithm by sending messages to the peers with higher ID
+*  @msg: the leader message
+*/
 func ElectionBully(msg ElectionMsg){
 	var i int 
 	var reply int
@@ -169,6 +214,7 @@ func ElectionBully(msg ElectionMsg){
 	
 	election = true
 	
+	//case no node in the network
 	if len(peers) == 1 { 
 		election = false
 		iamLeader = true
@@ -178,6 +224,7 @@ func ElectionBully(msg ElectionMsg){
 		
 	}
 	
+	//finding the peers with higher IDs
 	for i=0; i<len(peers) ; i++ { 
 		
 		if peers[i].ID > CurrNode.ID {
@@ -190,6 +237,7 @@ func ElectionBully(msg ElectionMsg){
 	
 	}
 	
+	//sending election messages to nodes with higher IDs
 	for i=0; i<len(major) ; i++ { 
 	
 		//checking if node is alive	
@@ -209,12 +257,14 @@ func ElectionBully(msg ElectionMsg){
 			log.Fatal("Error while calling RPC:", err)
 		}
 		
+		//if the node with higher ID replies then it means it is working, so I sit back
 		if reply == -1 { iamLeader = false}
 		
 		client.Close()
 		return
 	}
 	
+	//if no node with higher ID responds then I'm the leader
 	iamLeader = true
 	election = false
 	Leader = CurrNode
@@ -225,7 +275,12 @@ func ElectionBully(msg ElectionMsg){
 
 
 
-
+/* 
+*  ElectionCR is used to connect to the other peers pass an election message. Used for the Chang-Roberts' algorithm
+*  @msg: the leader message
+*  @starting: since this function is invoked both when starting an election or passing a message, the 
+*  starting flag is used to distinguish among the two cases
+*/
 func ElectionCR(msg ElectionMsg, starting bool){
 	var i= (CurrNode.Pos + 1) % totalPeers //starting from next node
 	var reply int
@@ -234,6 +289,7 @@ func ElectionCR(msg ElectionMsg, starting bool){
 	
 	for i< len(peers){
 	
+		//case no node in the network
 		if len(peers) == 0 {
 			iamLeader = true
 			election = false
@@ -296,12 +352,16 @@ func ElectionCR(msg ElectionMsg, starting bool){
 }
 
 
-
+/* 
+*  CheckLeaderAlive checks if the elected leader is working using a timeout based mechanism. If the leader is non-existent (for the example the node
+*  has just joined the network) or the the leader is not responding, a new election is started. This function is executed continously by a goroutine.
+*/
 func CheckLeaderAlive(){
 
 	var ret int
 	var msg ElectionMsg
 	
+	//case I've just joined the network
 	if reflect.ValueOf(Leader).IsZero() && election == false {
 		msg.StarterID = CurrNode.ID
 		msg.Number = electionStarted
@@ -316,8 +376,8 @@ func CheckLeaderAlive(){
 		
 	for {
 		time.Sleep(2 * time.Second) 
+		//if I'm the leader or a new election is already started no need to check the old leader
 		if iamLeader == false && election == false {
-			//log.Printf("Checking if leader %d is alive...", Leader.ID)
 			ret = IsAlive(Leader.Addr)
 			if ret < 0 {
 				msg.StarterID = CurrNode.ID
@@ -334,6 +394,10 @@ func CheckLeaderAlive(){
 	}
 }
 
+/* 
+*  isAlive is used to check if the node specified is alive
+*  @addr: the address of the node to check
+*/
 func IsAlive(addr string) int {
 	ret :=0
 	client, err := net.DialTimeout("tcp", addr, 5*time.Second )
@@ -349,8 +413,10 @@ func IsAlive(addr string) int {
 }
 
 
-
-func updatePeers(proc string) {
+/* 
+*  updatePeers is used to inform all the nodes in the system that I've joined the network
+*/
+func updatePeers() {
 
 	var i int
 	var reply int
@@ -365,12 +431,12 @@ func updatePeers(proc string) {
 			log.Fatal("Error while connecting to peer:", err)
 		}
 		
-		if proc == "NewPeer" {
-			err = client.Call("Peer.NewPeer", CurrNode, &reply)
-			if err != nil {
-				log.Fatal("Error while calling RPC:", err)
-			}
+		
+		err = client.Call("Peer.NewPeer", CurrNode, &reply)
+		if err != nil {
+			log.Fatal("Error while calling RPC:", err)
 		}
+		
 		
 		
 		client.Close()
@@ -379,7 +445,9 @@ func updatePeers(proc string) {
 }
 
 
-
+/* 
+*  GetPeers function invoked by the node to connect to the registry and obtain: addresses of the nodes in the network, the algorithm used, the ID
+*/
 func GetPeers() {
 
 	serviceRegistry := "registry:1234"
@@ -404,10 +472,10 @@ func GetPeers() {
 	peers = reply.Peers
 	totalPeers = len(peers)
 	
-	//log.Printf("NODE %d --- Hi I'm the node with ID %d and I listen on %s",CurrNode.ID, CurrNode.ID, CurrNode.Addr)
-	//printPeers()
+	log.Printf("NODE %d --- Hi I'm the node with ID %d and I listen on %s",CurrNode.ID, CurrNode.ID, CurrNode.Addr)
+	printPeers()
 	
-	if reply.Present == false { updatePeers("NewPeer") }
+	if reply.Present == false { updatePeers() }
 
 }
 
