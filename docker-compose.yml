@@ -6,6 +6,7 @@ services:
       context: ./ 
       dockerfile: ./Docker/registry/Dockerfile 
     container_name: registry
+    hostname: registry
     ports:
       - "1234:1234" 
     networks:
@@ -16,6 +17,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node1
+    hostname: node1
     ports:
       - "50001:50001" 
     environment:
@@ -31,6 +33,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node2
+    hostname: node2
     ports:
       - "50002:50002" 
     environment:
@@ -46,6 +49,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node3
+    hostname: node3
     ports:
       - "50003:50003" 
     environment:
@@ -61,6 +65,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node4
+    hostname: node4
     ports:
       - "50004:50004" 
     environment:
@@ -77,6 +82,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node5
+    hostname: node5
     ports:
       - "50005:50005" 
     environment:
@@ -93,6 +99,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node6
+    hostname: node6
     ports:
       - "50006:50006" 
     environment:
@@ -109,6 +116,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node7
+    hostname: node7
     ports:
       - "50007:50007" 
     environment:
@@ -125,6 +133,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node8
+    hostname: node8
     ports:
       - "50008:50008" 
     environment:
@@ -141,6 +150,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node9
+    hostname: node9
     ports:
       - "50009:50009" 
     environment:
@@ -156,6 +166,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node10
+    hostname: node10
     ports:
       - "50010:50010" 
     environment:
@@ -172,6 +183,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node11
+    hostname: node11
     ports:
       - "50011:50011" 
     environment:
@@ -188,6 +200,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node12
+    hostname: node12
     ports:
       - "50012:50012" 
     environment:
@@ -204,6 +217,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node13
+    hostname: node13
     ports:
       - "50013:50013" 
     environment:
@@ -220,6 +234,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node14
+    hostname: node14
     ports:
       - "50014:50014" 
     environment:
@@ -236,6 +251,7 @@ services:
       context: ./
       dockerfile: ./Docker/node/Dockerfile
     container_name: node15
+    hostname: node15
     ports:
       - "50015:50015" 
     environment:
