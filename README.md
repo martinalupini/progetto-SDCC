@@ -1,42 +1,49 @@
 ## Leader Election Algorithms Implementation
 
-## Starting the simulation
+## Getting started on AWS EC2
 
 To simulate the execution of a leader election algorithm follow the next steps:
 
 1. Create an EC2 instance.
-2. Open one terminal in the directory where you have saved the instance and connect to the EC2 instance:
+2. Open one terminal in the directory where you have saved the rsa key and connect to the EC2 instance:
 ```
 ssh -i <filename>.pem ec2-user@<public-ip>
 ```
-3. Install github on EC2 and clone this repository:
+3. Install git on EC2 and clone this repository:
 ```
 sudo yum update
 sudo yum install git -y
 git clone https://github.com/martinalupini/progetto-SDCC
 ```
-4. Install Docker and Docker Compose by running:
+4. Install Docker and Docker Compose:
 ```
 ./install_docker.sh
 ```
 > [!NOTE]
-> After running the script the instance will reboot. After waiting a few seconds, connect again to the istance by typing from your terminal the command at point 1.
+> After running the script the instance will reboot. Wait a few seconds and connect again to the instance by typing from your terminal the command at point 1.
 
-Now the environment is ready to start the simulation
+Now the environment is ready to start the simulation.
 
-## Simulation
+## Starting the simulation
 
-At first you need to choose between "Chang-Roberts" and "Bully" by writing in the file **configuration.txt**. If no algorithm is selected the default algorithm is Bully.
+> [!WARNING]
+> This step is mandatory
 
-In the directory **Scripts/** you can find several scripts to simulate the leader election algorithm.
-- To start the simulation type from the directory progetto-SDCC/ (**this step is mandatory**):
+At first you need to choose between "Chang-Roberts" and "Bully" by writing in the file **configuration.txt**. 
+If no algorithm is selected the default algorithm is Chang-Roberts. 
+
+- To start the simulation type from the directory *progetto-SDCC/*:
 ```
 ./Scripts/start.sh
 ```
+After that 16 containers (15 nodes and the registry) will be started. At the end, the node with the higher ID will be elected.
 
-Now I suggest to open a new terminal, connect to the istance and run the following scripts.
+## Interacting with the simulation
 
-- After starting the composition there will be a leader elected. I suggest to stop all the containers by typing:
+In the directory *Scripts/* you can find several scripts to interact with the simulation.
+Once the composition is up and running, I suggest to open a new terminal, connect to the instance and run the following scripts from the directory *progetto-SDCC/*.
+
+- To stop all the containers type:
 ```
 ./Scripts/stop_all.sh
 ```
@@ -48,6 +55,7 @@ Now I suggest to open a new terminal, connect to the istance and run the followi
 ```
 ./Scripts/stop_node.sh <container name>
 ```
-
+> [!NOTE]
+> If you want to change the alghoritm you need to build the container image again. To do that and also start the simulation run again `./Scripts/start.sh`
 
 

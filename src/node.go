@@ -335,7 +335,6 @@ func ElectionCR(msg ElectionMsg, starting bool){
 			iamLeader = false
 			election = false 
 			Leader = peers[i]
-			log.Printf("NODE %d --- ELECTION %d number %d FINISHED: New leader is %d", CurrNode.ID, msg.StarterID, msg.Number, Leader.ID)
 		}
 		
 		client.Close()
