@@ -18,7 +18,6 @@ git clone https://github.com/martinalupini/progetto-SDCC
 5. Initialize the istance and start the containers by running
 ```
 chmod +x configure_instance.sh
-chmod +x stop.sh
 ./configure_instance.sh
 ```
 6. To stop containers individually run
