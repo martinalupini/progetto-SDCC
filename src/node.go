@@ -183,16 +183,15 @@ func NotifyLeader(msg ElectionMsg){
 		
 		if peers[i].ID == CurrNode.ID { continue }
 		
-		if IsAlive(peers[i].Addr) < 0 { continue }
 		
 		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
 		if err != nil {
-			log.Fatal("Dial error", err)
+			continue
 		}
 		
 		err = client.Call("Peer.NewLeader", msg, &reply)
 		if err != nil {
-			log.Fatal("Error while calling RPC:", err)
+			continue
 		}
 		
 		client.Close()
@@ -240,21 +239,18 @@ func ElectionBully(msg ElectionMsg){
 	//sending election messages to nodes with higher IDs
 	for i=0; i<len(major) ; i++ { 
 	
-		//checking if node is alive	
-		if IsAlive(peers[i].Addr) < 0 { 
-			log.Printf("NODE %d --- ELECTION %d number %d: node %d is not working", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
-			continue }
-		
 		client, err := rpc.DialHTTP("tcp", major[i].Addr)
+		//checking if node is alive
 		if err != nil {
-			log.Fatal("Dial error", err)
+			log.Printf("NODE %d --- ELECTION %d number %d: node %d is not working", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
+			continue 
 		}
 		
 		log.Printf("NODE %d --- ELECTION %d number %d FINISHED: I'm not the leader. Received OK message from node %d", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
 		
 		err = client.Call("Peer.ElectionBully", msg, &reply)
 		if err != nil {
-			log.Fatal("Error while calling RPC:", err)
+			continue
 		}
 		
 		//if the node with higher ID replies then it means it is working, so I sit back
@@ -311,14 +307,6 @@ func ElectionCR(msg ElectionMsg, starting bool){
 		
 		}
 		
-		//checking if next node is responding. If not, passing to next one in the ring until one is reachable
-		if IsAlive(peers[i].Addr) < 0 {
-			log.Printf("NODE %d --- Node %d not responding, passing to next %s...", CurrNode.ID, peers[i].ID, peers[i].Addr)
-			i++
-			i = i % totalPeers
-			continue 
-		}
-		
 		if starting {
 			log.Printf("NODE %d --- STARTING ELECTION %d number %d: Sending message to node %d", CurrNode.ID, msg.StarterID, msg.Number, peers[i].ID)
 		} else {
@@ -328,13 +316,19 @@ func ElectionCR(msg ElectionMsg, starting bool){
 		msg.Phase++
 		
 		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
+		//checking if next node is responding. If not, passing to next one in the ring until one is reachable
 		if err != nil {
-			log.Fatal("Dial error", peers[i].ID)
+			log.Printf("NODE %d --- Node %d not responding, passing to next node...", CurrNode.ID, peers[i].ID)
+			i++
+			i = i % totalPeers
+			continue
 		}
 	
 		err = client.Call("Peer.ElectionLeaderCR", msg, &reply)
 		if err != nil {
-			log.Fatal("Error while calling RPC:", err)
+			i++
+			i = i % totalPeers
+			continue
 		}
 		
 		if(reply == 1){
@@ -424,20 +418,17 @@ func updatePeers() {
 	for i=0; i<len(peers); i++ {
 		if peers[i].ID == CurrNode.ID { continue }
 		
-		if IsAlive(peers[i].Addr) != 0 { continue }
 		
 		client, err := rpc.DialHTTP("tcp", peers[i].Addr)
 		if err != nil {
-			log.Fatal("Error while connecting to peer:", err)
+			continue
 		}
 		
 		
 		err = client.Call("Peer.NewPeer", CurrNode, &reply)
 		if err != nil {
-			log.Fatal("Error while calling RPC:", err)
+			continue
 		}
-		
-		
 		
 		client.Close()
 	}
@@ -461,7 +452,7 @@ func GetPeers() {
 	
 	err = client.Call("ServiceRegistry.AddNode", &CurrNode, &reply)
 	if err != nil {
-		log.Fatal("Error while calling RPC:", err)
+		log.Fatal("Error while calling RPC AddNode:", err)
 	}
 	
 	client.Close()
@@ -498,7 +489,7 @@ func main() {
 	lis, err := net.Listen("tcp", CurrNode.Addr )
 	
 	if err != nil {
-		log.Fatal("Error while starting RPC server:", err)
+		log.Fatal("Error while starting node:", err)
 	}
 
 	GetPeers()

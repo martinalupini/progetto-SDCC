@@ -113,14 +113,15 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 		reply.Pos = lastPeer
 		lastPeer++
 		peers = append(peers, newNode)
+		log.Printf("REGISTRY ---  New peer address: %s ID:%d",newNode.Addr,newNode.ID)
 			
 	} else {
 		reply.Pos = oldPos
+		log.Printf("REGISTRY --- Peer %d with address %s connects again", reply.ID, newNode.Addr)
 		
 	}
 	
 	reply.Peers = peers
-	log.Printf("REGISTRY ---  New peer address: %s ID:%d",newNode.Addr,newNode.ID)
 
 	return nil
 }
