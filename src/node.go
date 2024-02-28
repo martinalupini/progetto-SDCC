@@ -246,7 +246,6 @@ func ElectionBully(msg ElectionMsg){
 			continue 
 		}
 		
-		log.Printf("NODE %d --- ELECTION %d number %d FINISHED: I'm not the leader. Received OK message from node %d", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
 		
 		err = client.Call("Peer.ElectionBully", msg, &reply)
 		if err != nil {
@@ -254,7 +253,11 @@ func ElectionBully(msg ElectionMsg){
 		}
 		
 		//if the node with higher ID replies then it means it is working, so I sit back
-		if reply == -1 { iamLeader = false}
+		if reply == -1 { 
+			iamLeader = false
+			log.Printf("NODE %d --- ELECTION %d number %d FINISHED: I'm not the leader. Received OK message from node %d", CurrNode.ID, msg.StarterID, msg.Number, major[i].ID)
+		}else{ continue }
+		
 		
 		client.Close()
 		return

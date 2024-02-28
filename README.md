@@ -1,5 +1,8 @@
 ## Leader Election Algorithms Implementation
 
+Final project for the course of **Distributed Systems and Cloud Computing** of the University of Rome Tor Vergata (faculty Engineering in Computer Science), 2023/2024.
+More datails on the project can be found in the folder **Documentation**.
+
 ## Getting started on AWS EC2
 
 To simulate the execution of a leader election algorithm follow the next steps:
@@ -32,7 +35,7 @@ Now the environment is ready to start the simulation.
 At first you need to choose between "Chang-Roberts" and "Bully" by writing in the file **configuration.txt**. 
 If no algorithm is selected the default algorithm is Chang-Roberts. 
 
-- To start the simulation type from the directory *progetto-SDCC/*:
+- To start the simulation type from the directory **progetto-SDCC/**:
 ```
 ./Scripts/start.sh
 ```
@@ -40,8 +43,8 @@ After that 16 containers (15 nodes and the registry) will be started. At the end
 
 ## Interacting with the simulation
 
-In the directory *Scripts/* you can find several scripts to interact with the simulation.
-Once the composition is up and running, I suggest to open a new terminal, connect to the instance and run the following scripts from the directory *progetto-SDCC/*.
+In the directory **Scripts/** you can find several scripts to interact with the simulation.
+Once the composition is up and running, I suggest to open a new terminal, connect to the instance and run the following scripts from the directory **progetto-SDCC/**.
 
 - To stop all the containers type:
 ```
