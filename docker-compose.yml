@@ -40,7 +40,6 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
 
   node3:
     build:
@@ -56,8 +55,6 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
 
   node4:
     build:
@@ -73,9 +70,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
+
 
   node5:
     build:
@@ -91,10 +86,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
+
 
   node6:
     build:
@@ -110,11 +102,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
+
 
   node7:
     build:
@@ -130,12 +118,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
+
 
   node8:
     build:
@@ -151,13 +134,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
+
       
   node9:
     build:
@@ -173,14 +150,6 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
 
   node10:
     build:
@@ -196,15 +165,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
+
       
   node11:
     build:
@@ -220,16 +181,6 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
-      - node10
       
       
   node12:
@@ -246,17 +197,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
-      - node10
-      - node11
+
       
   node13:
     build:
@@ -272,18 +213,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
-      - node10
-      - node11
-      - node12
+
       
   node14:
     build:
@@ -299,19 +229,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
-      - node10
-      - node11
-      - node12
-      - node13
+   
       
   node15:
     build:
@@ -327,20 +245,7 @@ services:
       - node_network
     depends_on:
       - registry
-      - node1
-      - node2
-      - node3
-      - node4
-      - node5
-      - node6
-      - node7
-      - node8
-      - node9
-      - node10
-      - node11
-      - node12
-      - node13
-      - node14
+
       
       
 networks:
