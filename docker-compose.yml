@@ -48,7 +48,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
   node2:
     build:
@@ -64,7 +64,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
   node3:
     build:
@@ -80,7 +80,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
   node4:
     build:
@@ -96,7 +96,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
 
   node5:
@@ -113,7 +113,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
 
   node6:
@@ -130,7 +130,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
 
   node7:
@@ -147,7 +147,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
 
   node8:
@@ -164,7 +164,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
       
   node9:
@@ -181,7 +181,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
   node10:
     build:
@@ -197,7 +197,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
       
   node11:
@@ -214,7 +214,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
       
       
   node12:
@@ -231,7 +231,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
       
   node13:
@@ -248,7 +248,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
       
   node14:
@@ -265,7 +265,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
    
       
   node15:
@@ -282,7 +282,7 @@ services:
     networks:
       - node_network
     depends_on:
-      - registry
+      - registry2
 
       
       

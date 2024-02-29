@@ -514,6 +514,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Error while starting node:", err)
 	}
+	
+	time.Sleep(2 * time.Second) 
 
 	GetPeers()
 	

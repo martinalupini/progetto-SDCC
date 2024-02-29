@@ -99,12 +99,25 @@ func generateID(newNode Node) int {
 	}
 }
 
+func (r *ServiceRegistry) Sync(newNode Node, reply int) error {
+	reply.Pos = lastPeer
+	lastPeer++
+	peers = append(peers, newNode)
+	log.Printf("REGISTRY %s ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
+	
+	return nil
+
+}
+
+
+
 /*
 *  AddNode is invoked by the node when it wants to enter the network
 *  @newNode: the new node to add
 *  @reply: the reply to the node
 */
 func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
+	var response int
 	
 	//generating ID
 	reply.ID = generateID(newNode)
@@ -129,15 +142,14 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 
 	//updating the backup
 	if present == false && id == "1" {
-	
-		var response Neighbours 
+		 
 		//connection to service registry 
 		client, err := rpc.DialHTTP("tcp", "registry2:5678")
 		if err != nil {
 			goto out
 		}
 	
-		err = client.Call("ServiceRegistry.AddNode", &newNode, &response)
+		err = client.Call("ServiceRegistry.Sync", &newNode, &response)
 		if err != nil {
 			goto out
 		}
@@ -244,7 +256,7 @@ out:
 	if err != nil {
 		log.Fatal("REGISTRY --- Error while starting registry:", err)
 	}
-	log.Printf("REGISTRY --- Registry listens on port %d", 1234)
+	log.Printf("REGISTRY %s --- Registry listens on port %s:%s", id, hostname, port)
 
 	http.Serve(lis, nil)
 	
