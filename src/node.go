@@ -453,14 +453,16 @@ func GetPeers() {
 	client, err := rpc.DialHTTP("tcp", serviceRegistry)
 	if err != nil {
 		errReg = true
-	}
+	} else {
 	
-	err = client.Call("ServiceRegistry.AddNode", &CurrNode, &reply)
-	if err != nil {
-		errReg = true
-	}
+		err = client.Call("ServiceRegistry.AddNode", &CurrNode, &reply)
+		if err != nil {
+			errReg = true
+		
+		}
 	
-	client.Close()
+		client.Close()
+	}
 	
 	//connecting to the backup if the main registry is not working
 	if errReg == true {
@@ -476,6 +478,7 @@ func GetPeers() {
 		}
 	
 		client.Close()
+		errReg = false
 	
 	}
 
@@ -515,7 +518,7 @@ func main() {
 		log.Fatal("Error while starting node:", err)
 	}
 	
-	time.Sleep(2 * time.Second) 
+	time.Sleep(5 * time.Second) 
 
 	GetPeers()
 	

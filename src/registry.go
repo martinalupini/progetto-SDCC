@@ -32,6 +32,12 @@ type Neighbours struct {
 	Present bool
 }
 
+type Info struct {
+	Peers []Node
+	AssignedID []int
+
+}
+
 
 // variables of the registry //
 
@@ -59,7 +65,8 @@ var start_checking = false
 *  printPeers shows the peers in the system
 */
 func printPeers(){
-	var p = "REGISTRY --- PEERS:  "
+
+	var p = fmt.Sprintf("REGISTRY %s --- PEERS:  ", id)
 	var i int
 	for i=0; i<len(peers); i++ {
 		p = p+ fmt.Sprintf("%d:ID %d Address %s  ", i,peers[i].ID, peers[i].Addr)
@@ -99,11 +106,12 @@ func generateID(newNode Node) int {
 	}
 }
 
-func (r *ServiceRegistry) Sync(newNode Node, reply int) error {
-	reply.Pos = lastPeer
+func (r *ServiceRegistry) Sync(newNode Node, reply *int) error {
 	lastPeer++
 	peers = append(peers, newNode)
 	log.Printf("REGISTRY %s ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
+	assignedID = append(assignedID, newNode.ID)
+	printPeers()
 	
 	return nil
 
@@ -132,6 +140,7 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 		reply.Pos = lastPeer
 		lastPeer++
 		peers = append(peers, newNode)
+		assignedID = append(assignedID, newNode.ID)
 		log.Printf("REGISTRY %s ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
 			
 	} else {
@@ -164,7 +173,7 @@ out:
 }
 
 
-func (r *ServiceRegistry) RetrieveInfo(id string, reply *Neighbours) error {
+func (r *ServiceRegistry) RetrieveInfo(id string, reply *Info) error {
 	
 	//to start checking the main registry once one message from it is received
 	if start_checking == false {
@@ -173,8 +182,8 @@ func (r *ServiceRegistry) RetrieveInfo(id string, reply *Neighbours) error {
 	
 	}
 	
-	reply.Algorithm = algorithm 
 	reply.Peers = peers
+	reply.AssignedID = assignedID
 	working = true
 
 	return nil
@@ -210,7 +219,7 @@ func main() {
 	hostname = os.Getenv("HOSTNAME")
 	
 	if id == "1" {
-		var reply Neighbours 
+		var reply Info 
 		//connection to service registry backup to obtain updates
 		client, err := rpc.DialHTTP("tcp", "registry2:5678")
 		if err != nil {
@@ -223,6 +232,7 @@ func main() {
 		}
 	
 		peers = reply.Peers
+		assignedID = reply.AssignedID
 		client.Close()
 	
 	} 
