@@ -442,22 +442,43 @@ func updatePeers() {
 *  GetPeers function invoked by the node to connect to the registry and obtain: addresses of the nodes in the network, the algorithm used, the ID
 */
 func GetPeers() {
+	
+	var errReg = false
 
 	serviceRegistry := "registry:1234"
+	serviceRegistry2 := "registry2:5678"
 	var reply Neighbours
 	
 	//connection to service registry 
 	client, err := rpc.DialHTTP("tcp", serviceRegistry)
 	if err != nil {
-		log.Fatal("Error while connecting to registry server:", err)
+		errReg = true
 	}
 	
 	err = client.Call("ServiceRegistry.AddNode", &CurrNode, &reply)
 	if err != nil {
-		log.Fatal("Error while calling RPC AddNode:", err)
+		errReg = true
 	}
 	
 	client.Close()
+	
+	//connecting to the backup if the main registry is not working
+	if errReg == true {
+	
+		client, err := rpc.DialHTTP("tcp", serviceRegistry2)
+		if err != nil {
+			log.Fatal("Error while connecting to registry server:", err)
+		}
+	
+		err = client.Call("ServiceRegistry.AddNode", &CurrNode, &reply)
+		if err != nil {
+			log.Fatal("Error while calling RPC AddNode:", err)
+		}
+	
+		client.Close()
+	
+	}
+
 	
 	CurrNode.ID = reply.ID
 	CurrNode.Pos = reply.Pos

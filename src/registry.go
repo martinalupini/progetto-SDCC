@@ -11,6 +11,7 @@ import (
 	"slices"
 	"bufio"
 	"os"
+	"time"
 )
 
 type ServiceRegistry string
@@ -46,6 +47,11 @@ var assignedID []int
 var present = false 
 //the old index of the node if already in the network
 var oldPos int
+
+var id string 
+var working = true
+var start_checking = false
+
 
 
 // auxiliary functions of the service registry //
@@ -113,21 +119,103 @@ func (r *ServiceRegistry) AddNode(newNode Node, reply *Neighbours) error {
 		reply.Pos = lastPeer
 		lastPeer++
 		peers = append(peers, newNode)
-		log.Printf("REGISTRY ---  New peer address: %s ID:%d",newNode.Addr,newNode.ID)
+		log.Printf("REGISTRY %s ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
 			
 	} else {
 		reply.Pos = oldPos
-		log.Printf("REGISTRY --- Peer %d with address %s connects again", reply.ID, newNode.Addr)
+		log.Printf("REGISTRY %s --- Peer %d with address %s connects again",id, reply.ID, newNode.Addr)
 		
 	}
+
+	//updating the backup
+	if present == false && id == "1" {
 	
+		var response Neighbours 
+		//connection to service registry 
+		client, err := rpc.DialHTTP("tcp", "registry2:5678")
+		if err != nil {
+			goto out
+		}
+	
+		err = client.Call("ServiceRegistry.AddNode", &newNode, &response)
+		if err != nil {
+			goto out
+		}
+	
+		client.Close()
+	
+	}
+out:	
 	reply.Peers = peers
 
 	return nil
 }
 
 
+func (r *ServiceRegistry) RetrieveInfo(id string, reply *Neighbours) error {
+	
+	//to start checking the main registry once one message from it is received
+	if start_checking == false {
+		start_checking = true
+		go checkMainAlive()
+	
+	}
+	
+	reply.Algorithm = algorithm 
+	reply.Peers = peers
+	working = true
+
+	return nil
+}
+
+func checkMainAlive(){
+	for {
+		if working == true {
+			time.Sleep(2 * time.Second)
+			client, err := net.DialTimeout("tcp", "registry:1234", 5*time.Second )
+			if err != nil {
+				log.Printf("REGISTRY BACKUP --- I'm the main registry")
+				working = false
+	
+			} else {
+				client.Close()
+			}
+			
+		}
+	
+	
+	}
+
+}
+
+
 func main() {
+	var port string
+	var hostname string
+
+	id = os.Getenv("ID")
+	port = os.Getenv("PORT")
+	hostname = os.Getenv("HOSTNAME")
+	
+	if id == "1" {
+		var reply Neighbours 
+		//connection to service registry backup to obtain updates
+		client, err := rpc.DialHTTP("tcp", "registry2:5678")
+		if err != nil {
+			goto out
+		}
+	
+		err = client.Call("ServiceRegistry.RetrieveInfo", id, &reply)
+		if err != nil {
+			goto out
+		}
+	
+		peers = reply.Peers
+		client.Close()
+	
+	} 
+
+out:	
 	
 	//reading from the configuration file what algorithm to use
 	readFile, err := os.Open("configuration.txt")
@@ -152,7 +240,7 @@ func main() {
 	rpc.Register(serviceRegistry)
 	rpc.HandleHTTP()
 	
-	lis, err := net.Listen("tcp", "registry:1234")
+	lis, err := net.Listen("tcp", hostname+":"+port)
 	if err != nil {
 		log.Fatal("REGISTRY --- Error while starting registry:", err)
 	}
