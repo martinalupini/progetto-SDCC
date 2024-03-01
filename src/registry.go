@@ -53,9 +53,11 @@ var assignedID []int
 var present = false 
 //the old index of the node if already in the network
 var oldPos int
-
+//the id of the registry: 1 if it's the main, 2 if it's the backup
 var id string 
+//signals the main registry is working
 var working = true
+//signals if the backup registry has already started to check if main registry is alive
 var start_checking = false
 
 
@@ -199,7 +201,7 @@ func (r *ServiceRegistry) RetrieveInfo(id string, reply *Info) error {
 
 
 /*
-*  checkMainAlive is executed continuously in the background to check if the main registry is still working
+*  checkMainAlive is executed continuously in the background by the backup registry to check if the main registry is still working
 */
 func checkMainAlive(){
 	for {
