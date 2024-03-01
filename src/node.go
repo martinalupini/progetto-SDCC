@@ -449,7 +449,7 @@ func GetPeers() {
 	serviceRegistry2 := "registry2:5678"
 	var reply Neighbours
 	
-	//connection to service registry 
+	//connecting to the main service registry 
 	client, err := rpc.DialHTTP("tcp", serviceRegistry)
 	if err != nil {
 		errReg = true

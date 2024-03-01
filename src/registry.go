@@ -106,12 +106,16 @@ func generateID(newNode Node) int {
 	}
 }
 
+/*
+*  Sync is invoked by the main registry to keep its beckup replica up to date each time a new peer is added
+*  @newNode: the new node to add
+*  @reply: the reply to the registry
+*/
 func (r *ServiceRegistry) Sync(newNode Node, reply *int) error {
 	lastPeer++
 	peers = append(peers, newNode)
-	log.Printf("REGISTRY %s ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
+	log.Printf("REGISTRY %s SYNCHRONIZATION ---  New peer address: %s ID:%d",id, newNode.Addr,newNode.ID)
 	assignedID = append(assignedID, newNode.ID)
-	printPeers()
 	
 	return nil
 
@@ -172,7 +176,11 @@ out:
 	return nil
 }
 
-
+/*
+*  RetrieveInfo is invoked by the main registry to obtain information from the backup registry (in case the main registry was down for a period)
+*  @id: the id of the main registry
+*  @reply: all the information to give to the main registry
+*/
 func (r *ServiceRegistry) RetrieveInfo(id string, reply *Info) error {
 	
 	//to start checking the main registry once one message from it is received
@@ -189,6 +197,10 @@ func (r *ServiceRegistry) RetrieveInfo(id string, reply *Info) error {
 	return nil
 }
 
+
+/*
+*  checkMainAlive is executed continuously in the background to check if the main registry is still working
+*/
 func checkMainAlive(){
 	for {
 		if working == true {
