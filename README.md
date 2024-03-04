@@ -1,7 +1,7 @@
 ## Leader Election Algorithms Implementation
 
-Final project for the course of **Distributed Systems and Cloud Computing** of the University of Rome Tor Vergata (faculty Engineering in Computer Science), 2023/2024.
-More datails on the project can be found in the folder **Documentation**.
+Final project for the course of **Distributed Systems and Cloud Computing** of the University of Rome Tor Vergata (faculty Computer Engineering), 2023/2024.
+More details on the project can be found in the folder **Documentation**.
 
 ## Getting started on AWS EC2
 
@@ -39,7 +39,7 @@ If no algorithm is selected the default algorithm is Chang-Roberts.
 ```
 ./Scripts/start.sh
 ```
-After that 16 containers (15 nodes and the registry) will be started. At the end, the node with the higher ID will be elected.
+After that 17 containers (15 nodes and the two registries) will be started. At the end, the node with the higher ID will be elected.
 
 ## Interacting with the simulation
 

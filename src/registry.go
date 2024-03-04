@@ -272,6 +272,8 @@ out:
     	//the default algorithm is Bully
     	if algorithm != "chang-roberts" && algorithm != "bully" {   algorithm = "chang-roberts"  }
     	
+    	if id == "2" { log.Printf("REGISTRY --- Chosen algorithm is %s", algorithm) }
+    	
 	serviceRegistry := new(ServiceRegistry)
 	rpc.Register(serviceRegistry)
 	rpc.HandleHTTP()

@@ -358,7 +358,7 @@ func CheckLeaderAlive(){
 	var msg ElectionMsg
 	
 	//case I've just joined the network
-	if reflect.ValueOf(Leader).IsZero() && election == false {
+	if reflect.ValueOf(Leader).IsZero() {
 		msg.StarterID = CurrNode.ID
 		msg.Number = electionStarted
 		msg.Phase = 0
@@ -366,7 +366,7 @@ func CheckLeaderAlive(){
 		msg.From = CurrNode
 		electionStarted++
 		if algorithm == "chang-roberts" {  ElectionCR(msg, true) 
-		} else { ElectionBully(msg) }
+		} else {ElectionBully(msg)}
 		
 	}
 		
