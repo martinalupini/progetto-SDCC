@@ -58,7 +58,18 @@ Once the composition is up and running, I suggest to open a new terminal, connec
 ```
 ./Scripts/stop_node.sh <container name>
 ```
+
 > [!NOTE]
-> If you want to change the alghoritm you need to build the container image again. To do that and also start the simulation run again `./Scripts/start.sh`
+> If you want to change the alghoritm you need to build the containers' images again. To do that and also start the simulation run again:
+```
+docker-compose build
+docker-compose up
+```
+
+## Stopping the simulation
+To stop the simulation type:
+```
+docker-compose stop
+```
 
 
