@@ -46,7 +46,7 @@ After that 17 containers (15 nodes and the two registries) will be started. At t
 In the directory **Scripts/** you can find several scripts to interact with the simulation.
 Once the composition is up and running, I suggest to open a new terminal, connect to the instance and run the following scripts from the directory **progetto-SDCC/**.
 
-- To stop all the containers type:
+- To stop all the nodes but not the registries type:
 ```
 ./Scripts/stop_all.sh
 ```
@@ -65,11 +65,4 @@ Once the composition is up and running, I suggest to open a new terminal, connec
 docker-compose build
 docker-compose up
 ```
-
-## Stopping the simulation
-To stop the simulation type:
-```
-docker-compose stop
-```
-
 
